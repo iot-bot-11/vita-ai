@@ -1,46 +1,59 @@
+import os
+
 import streamlit as st
-from langchain.schema import HumanMessage, SystemMessage, AIMessage
-from langchain_community.chat_models import ChatOpenAI
+from dotenv import load_dotenv
+import google.generativeai as gen_ai
 
-## Streamlit UI
-st.set_page_config(page_title="MED Q&A Chatbot")
-st.header("Hi im Vita")
-# st.subheader("Please begin by sharing your full name, age, and token number. Following that, provide details about your current condition or situation")
 
-# Define your OpenAI API key here
-openai_api_key = "sk-proj-fYpfO5x1PwG2p1zuLzN6T3BlbkFJhfAB5wcdWAYcRmKtBWca"
+# Load environment variables
+# load_dotenv() # No need for this if you're directly adding the API key in the code
 
-# Initialize the ChatOpenAI class with your API key
-chat = ChatOpenAI(api_key=openai_api_key, temperature=0.5)
+# Configure Streamlit page settings
+st.set_page_config(
+    page_title="Chat with vita",
+    page_icon=":brain:",  # Favicon emoji
+    layout="centered",  # Page layout option
+)
 
-# Initialize session_state if not already initialized
-if 'flowmessages' not in st.session_state:
-    st.session_state['flowmessages'] = [
-        SystemMessage(content="""Welcome to the medical AI assistant. To begin, please provide your details in given order
-        name, age, and token number.
-        Then, describe your medical condition for diagnosis. i will provide a comprehensive summary based on the information provided""")
-    ]
+# Set your Google API key here
+GOOGLE_API_KEY = ""
 
-## Function to get response from the OpenAI model
+# Set up Google Gemini-Pro AI model
+gen_ai.configure(api_key=GOOGLE_API_KEY)
+model = gen_ai.GenerativeModel('gemini-1.5-pro-latest')
 
-def get_chatmodel_response(question):
-    st.session_state['flowmessages'].append(HumanMessage(content=question))
-    answer = chat(st.session_state['flowmessages'])
-    st.session_state['flowmessages'].append(AIMessage(content=answer.content))
-    return answer.content
 
-input_text = st.text_input("""Please begin by sharing your details order by  \n
-FULL_NAME:\n 
-AGE:\n
-\n TOKEN_NO. \n
-Following that, provide details about your current condition or situation \n
-is any Medical history specify """, key="input")
-response = get_chatmodel_response(input_text)
+# Function to translate roles between Gemini-Pro and Streamlit terminology
+def translate_role_for_streamlit(user_role):
+    if user_role == "model":
+        return "assistant"
+    else:
+        return user_role
 
-submit = st.button("input")
+admin_prompt = " Welcome to the medical AI assistant VITA. describe your medical condition step by step for diagnosis."
 
-## If ask button is clicked
+# Initialize chat session in Streamlit if not already present
+if "chat_session" not in st.session_state:
+    st.session_state.chat_session = model.start_chat(history=[])
 
-if submit:
-    st.subheader("My findings")
-    st.write(response)
+
+# Display the chatbot's title on the page
+st.title("🤖 vit Pro - ChatBot")
+
+# Display the chat history
+for message in st.session_state.chat_session.history:
+    with st.chat_message(translate_role_for_streamlit(message.role)):
+        st.markdown(message.parts[0].text)
+
+# Input field for user's message
+user_prompt = st.chat_input("Ask vita-Pro...")
+if user_prompt:
+    # Add user's message to chat and display it
+    st.chat_message("user").markdown(user_prompt)
+
+    # Send user's message to Gemini-Pro and get the response
+    gemini_response = st.session_state.chat_session.send_message(admin_prompt + " " + user_prompt)
+
+    # Display Gemini-Pro's response
+    with st.chat_message("assistant"):
+        st.markdown(gemini_response.text)
