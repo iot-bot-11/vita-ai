@@ -28,7 +28,7 @@ def translate_role_for_streamlit(user_role):
     else:
         return user_role
 
-admin_prompt = " Welcome to the medical AI assistant VITA. describe your medical condition step by step for diagnosis."
+admin_prompt = " Welcome to the medical AI assistant VITA. describe your medical condition step by step for summary."
 
 # Initialize chat session in Streamlit if not already present
 if "chat_session" not in st.session_state:
