@@ -1,4 +1,2 @@
-openai
-langchain-community
-langchain
+google.generativeai
 config
